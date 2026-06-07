@@ -40,7 +40,6 @@ sgid_server/
 ├── servicio_pedid.py    # Servicio de pedidos             → bus: "pedid"
 │
 ├── start_services.sh    # Script de arranque (todos los servicios)
-└── test_servicios.py    # Tests de integracion (35 casos)
 ```
 
 La base de datos `sgid.db` se crea automaticamente al ejecutar `init_db.py`.
