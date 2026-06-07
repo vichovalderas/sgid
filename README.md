@@ -12,10 +12,8 @@ El servidor usa unicamente una libreria externa:
 pip install bcrypt
 ```
 
-Todo lo demas (`sqlite3`, `socket`, `json`) es parte de la libreria estandar de Python — no necesita instalacion.
-
 ### Docker (Bus ESB)
-El bus lo provee el profesor como imagen Docker:
+El bus lo provee el profe como imagen Docker:
 
 ```bash
 docker run -d -p 5000:5000 jrgiadach/soabus:v1
@@ -32,7 +30,7 @@ docker logs -f <container_id>
 
 ```
 sgid_server/
-├── soa_lib.py           # Libreria del profesor (NO modificar)
+├── soa_lib.py           # Libreria del profesor 
 ├── db.py                # Helpers de base de datos compartidos
 ├── init_db.py           # Crea la BD con tablas y datos de prueba
 │
@@ -68,7 +66,14 @@ Esto crea `sgid.db` con las 5 tablas y carga usuarios y datos de prueba.
 
 **Opcion A — Script automatico (recomendado):**
 ```bash
+//linux
+
 bash start_services.sh
+```
+```bash
+//windows
+
+start_services.bat
 ```
 Levanta los 4 servicios en background y guarda los logs en archivos `.log`.
 
