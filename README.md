@@ -63,7 +63,7 @@ Esto crea `sgid.db` con las 5 tablas y carga usuarios y datos de prueba.
 
 ### Paso 3 — Levantar los servicios
 
-**Opcion A — Script automatico (recomendado):**
+**Opcion A — Script automatico:**
 ```bash
 //linux
 
