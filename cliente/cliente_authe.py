@@ -26,7 +26,13 @@ def llamar(payload: dict) -> dict:
         raw = receive_message(sock)
         if not raw:
             return {"status": "NK", "code": 500, "msg": "Sin respuesta del bus."}
-        return json.loads(raw[5:].decode())
+        try:
+            return json.loads(raw[5:].decode())
+        except json.JSONDecodeError as e:
+            print(f"[DEBUG] raw recibido: {raw!r}")
+            return {"status": "NK", "code": 500, "msg": f"Respuesta del bus no es JSON válido: {e}"}
+    except OSError as e:
+        return {"status": "NK", "code": 500, "msg": f"Error de conexión al bus: {e}"}
     finally:
         sock.close()
 
@@ -152,10 +158,8 @@ def main():
                 MENU[opcion][1]()
             except KeyboardInterrupt:
                 print("\n  (operación cancelada)")
-            except ValueError:
-                print("\n  [!] Ingresa un número válido donde se pida un ID.")
             except Exception as e:
-                print(f"\n  [ERROR] {e}")
+                print(f"\n  [ERROR] {type(e).__name__}: {e}")
         else:
             print("  Opción no válida.")
 
