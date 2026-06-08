@@ -29,7 +29,7 @@ def _get_rol(conn, id_usuario: int):
 
 # ─── Lógica de negocio ───────────────────────────────────────────────────────
 
-def handle_listar_todos() -> str:
+def handle_listar_todos(payload: dict = None) -> str:
     """
     Retorna el catálogo completo de insumos ordenados por nombre.
     El campo calculado bajo_critico = (stock_actual <= stock_critico).
@@ -37,15 +37,33 @@ def handle_listar_todos() -> str:
 
     Respuesta OK: {status, code, msg, insumos: [...]}
     """
+    payload = payload or {}
+    limite = payload.get("limite")
+    offset = payload.get("offset", 0)
+
+    if limite is not None and (not isinstance(limite, int) or limite <= 0):
+        return error("El campo 'limite' debe ser un entero mayor a 0.")
+    if not isinstance(offset, int) or offset < 0:
+        return error("El campo 'offset' debe ser un entero >= 0.")
+
     try:
         conn = get_conn()
         cur  = conn.cursor()
-        cur.execute("""
+        cur.execute("SELECT COUNT(*) AS total FROM insumos")
+        total = cur.fetchone()["total"]
+
+        sql = """
             SELECT id_insumo, nombre, stock_actual AS stock,
                    stock_critico, unidad_medida, codigo_interno
             FROM insumos
             ORDER BY nombre ASC
-        """)
+        """
+        params = []
+        if limite is not None:
+            sql += " LIMIT ? OFFSET ?"
+            params.extend([limite, offset])
+
+        cur.execute(sql, params)
         filas = cur.fetchall()
         conn.close()
     except Exception as e:
@@ -66,7 +84,7 @@ def handle_listar_todos() -> str:
         for fila in filas
     ]
 
-    return ok("Catálogo cargado", insumos=insumos)
+    return ok("Catálogo cargado", insumos=insumos, total=total, offset=offset, limite=limite)
 
 
 def handle_crear_insumo(payload: dict) -> str:
@@ -240,7 +258,7 @@ def dispatch(payload_raw: str) -> str:
 
     operacion = payload.get("operacion", "")
     ops = {
-        "listar_todos":      lambda p: handle_listar_todos(),
+        "listar_todos":      handle_listar_todos,
         "crear_insumo":      handle_crear_insumo,
         "actualizar_insumo": handle_actualizar_insumo,
     }

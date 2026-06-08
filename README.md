@@ -30,6 +30,9 @@ docker logs -f <container_id>
 
 ```
 sgid_server/
+├── cliente/
+│   └── sgid_cliente.py    # Cliente CLI y demo automatizada por bus SOA
+│
 ├── soa_lib.py           # Libreria del profesor 
 ├── db.py                # Helpers de base de datos compartidos
 ├── init_db.py           # Crea la BD con tablas y datos de prueba
@@ -91,6 +94,29 @@ python3 test_servicios.py
 ```
 Resultado esperado: `35 OK | 0 FAIL`
 
+### Paso 5 — Ejecutar el cliente
+Desde la carpeta raiz del proyecto:
+
+```bash
+cd sgid/cliente
+python3 sgid_cliente.py
+```
+
+El cliente se conecta al bus SOA y permite operar con los cuatro servicios:
+autenticacion, catalogo, inventario y pedidos.
+
+Tambien existe una demo automatizada para generar evidencia de funcionamiento:
+
+```bash
+cd sgid/cliente
+python3 sgid_cliente.py --demo
+```
+
+La demo ejecuta un flujo completo por bus:
+login de clinico, login de bodega, consulta de catalogo, creacion de pedido,
+listado de pendientes, aprobacion con descuento atomico de stock y consulta de
+movimientos.
+
 ---
 
 ## 4. Usuarios de prueba
@@ -118,7 +144,10 @@ try:
     send_message(sock, "SSSSS", payload)   # SSSSS = nombre del servicio (5 letras)
 
     raw = receive_message(sock)
-    datos = json.loads(raw[5:].decode())   # saltar los 5 bytes del nombre del servicio
+    body = raw[5:].decode()                # saltar los 5 bytes del nombre del servicio
+    if body.startswith(("OK", "NK")):
+        body = body[2:]                    # el bus agrega OK/NK al enrutar la respuesta
+    datos = json.loads(body)
 
     if datos["status"] == "OK":
         print(datos["msg"])
@@ -267,11 +296,19 @@ Modifica `nombre`, `rol` y/o `pass`. Debe enviar al menos uno de los tres.
 ---
 
 #### `listar_todos`
-Devuelve todos los insumos. El campo `bajo_critico` es `true` cuando el stock esta en o bajo el umbral minimo — el cliente debe resaltar estos insumos en la UI.
+Devuelve los insumos. El campo `bajo_critico` es `true` cuando el stock esta
+en o bajo el umbral minimo — el cliente debe resaltar estos insumos en la UI.
+Para el bus Docker del curso se recomienda usar paginacion (`limite` y
+`offset`) para mantener cada mensaje bajo 1 KB.
 
 **Request:**
 ```json
 { "operacion": "listar_todos" }
+```
+
+**Request paginado recomendado para cliente:**
+```json
+{ "operacion": "listar_todos", "limite": 4, "offset": 0 }
 ```
 
 **Respuesta exitosa:**
@@ -280,6 +317,9 @@ Devuelve todos los insumos. El campo `bajo_critico` es `true` cuando el stock es
   "status": "OK",
   "code": 200,
   "msg": "Catalogo cargado",
+  "total": 10,
+  "offset": 0,
+  "limite": 4,
   "insumos": [
     {
       "id_insumo": 1,
@@ -618,7 +658,10 @@ from soa_lib import connect_to_bus, send_message, receive_message
 def llamar(sock, servicio, payload):
     send_message(sock, servicio, json.dumps(payload))
     raw = receive_message(sock)
-    return json.loads(raw[5:].decode())
+    body = raw[5:].decode()
+    if body.startswith(("OK", "NK")):
+        body = body[2:]
+    return json.loads(body)
 
 sock = connect_to_bus()
 try:
@@ -660,3 +703,75 @@ try:
 finally:
     sock.close()
 ```
+
+---
+
+## 9. Cliente implementado
+
+El archivo `cliente/sgid_cliente.py` implementa el proceso cliente exigido para
+invocar los servicios a traves del bus. Usa la misma libreria `soa_lib.py`
+entregada como base por el curso:
+
+```python
+send_message(sock, "authe", json.dumps(payload))
+raw = receive_message(sock)
+body = raw[5:].decode()
+if body.startswith(("OK", "NK")):
+    body = body[2:]
+respuesta = json.loads(body)
+```
+
+Opciones principales del menu:
+
+| Opcion | Servicio invocado | Operacion |
+|--------|-------------------|-----------|
+| Ver catalogo | `catal` | `listar_todos` paginado |
+| Crear pedido | `pedid` | `crear_pedido` |
+| Mis pedidos | `pedid` | `listar_por_usuario` |
+| Descontar stock directo | `inven` | `descontar` |
+| Pedidos pendientes | `pedid` | `listar_pendientes` |
+| Aprobar pedido | `pedid` | `aprobar_pedido` |
+| Rechazar pedido | `pedid` | `rechazar_pedido` |
+| Registrar entrada | `inven` | `registrar_entrada` |
+| Historial movimientos | `inven` | `listar_movimientos` |
+| Crear usuario | `authe` | `crear_usuario` |
+
+Permisos esperados:
+
+- `Clinico`: puede consultar catalogo, crear pedidos, ver sus pedidos y hacer
+  descuento directo de stock.
+- `Bodega`: puede revisar pedidos pendientes, aprobar/rechazar, registrar
+  entradas y ver movimientos.
+- `Admin`: puede administrar usuarios y catalogo, y consultar informacion de
+  gestion.
+
+---
+
+## 10. Evidencias sugeridas para el informe final
+
+Comandos para capturar evidencia:
+
+```bash
+cd sgid/servicios
+python3 init_db.py
+python3 test_servicios.py
+```
+
+Con bus y servicios levantados:
+
+```bash
+cd sgid/cliente
+python3 sgid_cliente.py --demo
+```
+
+La salida de `test_servicios.py` demuestra la logica interna de los servicios y
+la salida de `sgid_cliente.py --demo` demuestra la comunicacion real cliente ->
+bus -> servicio -> bus -> cliente.
+
+Puntos cubiertos de la entrega final:
+
+- Punto 8: servicios implementados y proceso cliente que los invoca.
+- Punto 9: documentacion del sistema y evidencias de ejecucion.
+- Punto 10: base para analisis critico: concurrencia en stock, transacciones,
+  manejo de roles, errores de negocio y dependencia del bus.
+- Punto 11: demo en vivo usando el cliente interactivo o `--demo`.

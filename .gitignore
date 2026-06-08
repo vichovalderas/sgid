@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+
+servicios/sgid.db
+servicios/sgid_*.log
+servicios/sgid_pids.txt

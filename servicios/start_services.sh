@@ -49,22 +49,22 @@ echo ""
 cd "$SCRIPT_DIR"
 
 # ── 3. Levantar los 4 servicios ──────────────────────────────────────────────
-python3 servicio_authe.py > sgid_authe.log 2>&1 &
+nohup python3 -u servicio_authe.py > sgid_authe.log 2>&1 &
 PID_AUTHE=$!
 echo "  [authe] PID $PID_AUTHE → sgid_authe.log"
 sleep 0.5
 
-python3 servicio_catal.py > sgid_catal.log 2>&1 &
+nohup python3 -u servicio_catal.py > sgid_catal.log 2>&1 &
 PID_CATAL=$!
 echo "  [catal] PID $PID_CATAL → sgid_catal.log"
 sleep 0.5
 
-python3 servicio_inven.py > sgid_inven.log 2>&1 &
+nohup python3 -u servicio_inven.py > sgid_inven.log 2>&1 &
 PID_INVEN=$!
 echo "  [inven] PID $PID_INVEN → sgid_inven.log"
 sleep 0.5
 
-python3 servicio_pedid.py > sgid_pedid.log 2>&1 &
+nohup python3 -u servicio_pedid.py > sgid_pedid.log 2>&1 &
 PID_PEDID=$!
 echo "  [pedid] PID $PID_PEDID → sgid_pedid.log"
 sleep 1
