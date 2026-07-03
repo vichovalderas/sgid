@@ -49,7 +49,7 @@ La base de datos `sgid.db` se crea automaticamente al ejecutar `init_db.py`.
 
 ---
 
-## 3. Primeros pasos (orden obligatorio)
+## 3. 
 
 ### Paso 1 — Levantar el bus ESB
 ```bash
@@ -88,7 +88,7 @@ python3 servicio_inven.py
 python3 servicio_pedid.py
 ```
 
-### Paso 4 — Verificar que todo funciona
+### Paso 4 
 ```bash
 python3 test_servicios.py
 ```
