@@ -18,7 +18,14 @@ SERVICIO = "catal"
 # ─── Helper de comunicación ───────────────────────────────────────────────────
 
 def llamar(payload: dict) -> dict:
-    """Abre conexión, envía, recibe y cierra. Una conexión por llamada."""
+    """Abre conexión, envía, recibe y cierra. Una conexión por llamada.
+    
+    El bus devuelve: SSSSSRR{json}
+      SSSSS = nombre del servicio (5 bytes)
+      RR    = resultado del bus, "OK" o "NK" (2 bytes)
+      {json} = respuesta del servicio
+    En total hay que saltar 7 bytes para llegar al JSON.
+    """
     sock = connect_to_bus()
     try:
         send_message(sock, SERVICIO, json.dumps(payload))
@@ -26,7 +33,8 @@ def llamar(payload: dict) -> dict:
         if not raw:
             return {"status": "NK", "code": 500, "msg": "Sin respuesta del bus."}
         try:
-            return json.loads(raw[5:].decode())
+            # Saltar 7 bytes: 5 del nombre del servicio + 2 del resultado del bus (OK/NK)
+            return json.loads(raw[7:].decode())
         except json.JSONDecodeError as e:
             print(f"[DEBUG] raw recibido: {raw!r}")
             return {"status": "NK", "code": 500, "msg": f"Respuesta del bus no es JSON válido: {e}"}
@@ -59,7 +67,7 @@ def op_listar_todos():
         print(f"  {'ID':<5} {'Código':<10} {'Nombre':<28} {'Stock':>6} {'Crítico':>8} {'Unidad':<10} {'Alerta'}")
         separador()
         for i in insumos:
-            alerta = "⚠ BAJO" if i["bajo_critico"] else ""
+            alerta = " BAJO" if i["bajo_critico"] else ""
             print(f"  {i['id_insumo']:<5} {i['codigo_interno']:<10} "
                   f"{i['nombre'][:27]:<28} {i['stock']:>6} "
                   f"{i['stock_critico']:>8} {i['unidad_medida']:<10} {alerta}")
@@ -67,7 +75,7 @@ def op_listar_todos():
         print(f"  Total: {len(insumos)} insumo(s)")
         bajos = [i for i in insumos if i["bajo_critico"]]
         if bajos:
-            print(f"  ⚠  {len(bajos)} insumo(s) bajo stock crítico:")
+            print(f" {len(bajos)} insumo(s) bajo stock crítico:")
             for i in bajos:
                 print(f"     - {i['nombre']} (stock={i['stock']}, crítico={i['stock_critico']})")
 

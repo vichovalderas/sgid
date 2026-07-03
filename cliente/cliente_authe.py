@@ -19,7 +19,14 @@ SERVICIO = "authe"
 # ─── Helper de comunicación ───────────────────────────────────────────────────
 
 def llamar(payload: dict) -> dict:
-    """Abre conexión, envía, recibe y cierra. Una conexión por llamada."""
+    """Abre conexión, envía, recibe y cierra. Una conexión por llamada.
+    
+    El bus devuelve: SSSSSRR{json}
+      SSSSS = nombre del servicio (5 bytes)
+      RR    = resultado del bus, "OK" o "NK" (2 bytes)
+      {json} = respuesta del servicio
+    En total hay que saltar 7 bytes para llegar al JSON.
+    """
     sock = connect_to_bus()
     try:
         send_message(sock, SERVICIO, json.dumps(payload))
@@ -27,7 +34,8 @@ def llamar(payload: dict) -> dict:
         if not raw:
             return {"status": "NK", "code": 500, "msg": "Sin respuesta del bus."}
         try:
-            return json.loads(raw[5:].decode())
+            # Saltar 7 bytes: 5 del nombre del servicio + 2 del resultado del bus (OK/NK)
+            return json.loads(raw[7:].decode())
         except json.JSONDecodeError as e:
             print(f"[DEBUG] raw recibido: {raw!r}")
             return {"status": "NK", "code": 500, "msg": f"Respuesta del bus no es JSON válido: {e}"}
@@ -52,7 +60,7 @@ def separador():
 # ─── Operaciones ──────────────────────────────────────────────────────────────
 
 def op_login():
-    print("\n── LOGIN ──────────────────────────────────────")
+    print("\n─ LOGIN ──────────────────────────────────────")
     user = pedir("Email (ej: juan.perez)")
     pw   = pedir("Contraseña", oculto=True)
     r = llamar({"operacion": "login", "user": user, "pass": pw})
@@ -67,7 +75,7 @@ def op_login():
 
 
 def op_crear_usuario():
-    print("\n── CREAR USUARIO (solo Admin) ─────────────────")
+    print("\n─ CREAR USUARIO (solo Admin) ─────────────────")
     id_admin = pedir("Tu ID de usuario Admin")
     nombre   = pedir("Nombre completo del nuevo usuario")
     email    = pedir("Email del nuevo usuario")
